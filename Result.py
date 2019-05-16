@@ -9,10 +9,13 @@ def getResultDict(html):
     pattern = re.compile(r"init(.*?);\n",re.S)
     resultdict = re.findall(pattern,resultdict[0])
     resultdict = resultdict[1]
-    pattern = re.compile(r"\((.*?)\)", re.S)
-    resultdict = re.findall(pattern, resultdict)
-    resultdict = resultdict[0]
-    resultdict = json.loads(resultdict)
+
+    length = len(resultdict)
+    resultdict = resultdict[1:length - 1]
+    try:
+        resultdict = json.loads(resultdict)
+    except Exception as e:
+        print(e)
     error_no = resultdict['error_no']
     if error_no == 4:
         # results['friends_info'] = '当前红包已过期'
