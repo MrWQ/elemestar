@@ -48,11 +48,11 @@ def getHB(url, wxcookie, printInfo):
     re2 = s.post(url=url, headers=headers, cookies=WXcookie)
     resultHtml = re2.content.decode('unicode_escape')
     results = Result.getResultDict(resultHtml)
-    if results != None:
+    if results['friends_info'] != None:
 #         # 如果标志位为ture 打印信息
         if printInfo == True:
             luckNumber = results['luckNumber']
-            friend_info =  results['friends_info']
+            friend_info = results['friends_info']
             error_msg = results['error_msg']
             friendsNumber = len(friend_info)
             print('最佳手气位置：' ,luckNumber)
@@ -66,5 +66,6 @@ def getHB(url, wxcookie, printInfo):
             return results
     else:
         print('当前红包已过期,获取红包信息失败')
+        print(results['error_msg'])
         return None
 
