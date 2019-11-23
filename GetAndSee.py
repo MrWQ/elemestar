@@ -42,33 +42,36 @@ def getHB(url, wxcookie):
     results_html = results_html.replace('"{', '{')
     results_html = results_html.replace('}"', '}')
     results = json.loads(results_html)
-    if results['result'] == []:
-        error_msg = results['msg']
-    else:
+    try:
         error_msg = results['result']['msg']
-        if len(results['result']) > 8:
-                pattern = re.compile(r"第(.*?)个领取的人", re.S)
-                luck_number = re.findall(pattern, results['result']['share']['share_title'])[0]
+    except:
+        error_msg = results['error_msg']
+    if len(results['result']) > 8:
+            pattern = re.compile(r"第(.*?)个领取的人", re.S)
+            luck_number = re.findall(pattern, results['result']['share']['share_title'])[0]
+            try:
                 friend_info = results['result']['friends_info']
-                friends_number = len(friend_info)
-                print("信息如下：", "最佳位置：", luck_number, '已领人数：', friends_number)
-                fri_info = []
-                for friend in friend_info:
-                    hb_info = {}
-                    hb_info['username'] = friend['username']
-                    hb_info['amount'] = friend['amount']
-                    hb_info['is_luck'] = friend['is_luck']
-                    hb_info['date'] = friend['date']
-                    fri_info.append(hb_info)
-                pad = pd.DataFrame(fri_info, columns=['date', 'is_luck', 'amount', 'username'])
-                print(pad)
-                print(error_msg, '\n')
-                ret = {}
-                ret['luck_number'] = luck_number
-                ret['friends_number'] = friends_number
-                ret['url'] = url
-                return ret
+            except:
+                print(error_msg)
+                return None
+            friends_number = len(friend_info)
+            print("信息如下：", "最佳位置：", luck_number, '已领人数：', friends_number)
+            fri_info = []
+            for friend in friend_info:
+                hb_info = {}
+                hb_info['username'] = friend['username']
+                hb_info['amount'] = friend['amount']
+                hb_info['is_luck'] = friend['is_luck']
+                hb_info['date'] = friend['date']
+                fri_info.append(hb_info)
+            pad = pd.DataFrame(fri_info, columns=['date', 'is_luck', 'amount', 'username'])
+            print(pad)
+            print("最佳位置：", luck_number, '已领人数：', friends_number)
+            print(error_msg, '\n')
+            ret = {}
+            ret['luck_number'] = luck_number
+            ret['friends_number'] = friends_number
+            ret['url'] = url
+            return ret
 
-    print(error_msg)
-    return None
 

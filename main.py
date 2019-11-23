@@ -1,9 +1,10 @@
 import linecache
 import os
-
 import GetAndSee
 
+
 # 将wxcookie换成需要领取的人的cookie  其中wxcookie为必选
+wxcookie1 = {'whid': '0%3D', 'flag': '自己'} #自己的
 
 wxcookie = []
 wxcookie.append(wxcookie0)
