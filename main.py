@@ -2,15 +2,11 @@ import linecache
 import os
 
 import GetAndSee
-import GetAndSee
-import ReadFile
 
 # 将wxcookie换成需要领取的人的cookie  其中wxcookie为必选
-wxcookie7 = {'whid':'%3D'} #自己的
-
 
 wxcookie = []
-wxcookie.append([0])
+wxcookie.append(wxcookie0)
 wxcookie.append(wxcookie1)
 wxcookie.append(wxcookie2)
 wxcookie.append(wxcookie3)
@@ -27,66 +23,51 @@ number = input("输入选择：")
 number = int(number)
 if number == 1:
     url = input("请输入url：")
-    GetAndSee.getHB(url, wxcookie7, True)
+    GetAndSee.getHB(url, wxcookie7['whid'])
 elif number == 2:
-    url = input("请输入url：")
-    whoGet = input("谁领取？  1. 自己   2. 垃圾   3. 胖    4.二   5.三的  6.立神  7.翻译>>>")
+    who = ''
+    for counter in range(len(wxcookie)):
+        who = who + str(counter) + '.' + wxcookie[counter]['flag'] + '  '
+    whoGet = input("谁领取？ " + who + '>>>')
     whoGet = int(whoGet)
     # 领取
-    if whoGet >0 and whoGet <8:
-        GetAndSee.getHB(url, wxcookie[whoGet], True)
+    if whoGet >=0 and whoGet < len(wxcookie):
+        url = input("请输入url：")
+        GetAndSee.getHB(url, wxcookie[whoGet]['whid'])
     else:
         print("无法识别")
 elif number == 3:
-    filePath = 'starUrls.txt'
-    lineNumber = ReadFile.getFileLineNumber(filePath)
-    littleUrl = []  #统计未领取到最大的url，写入文件时用
-    # count 计数 表示行数
-    for count in range(1,lineNumber+1):
-        urlInfo = []  #捆绑信息，将最大数，朋友数目，url捆绑起来
-        # line 某一行的内容
-        urlLine = linecache.getline(filePath, count)
-        # 过滤不合格的url，比如换行  只领取大于5个字符的url
-        if len(urlLine) > 5:
-            # 透视 当前line内容为url
-            results = GetAndSee.getHB(urlLine, wxcookie7, False)
-            if results != None:
-                try:
-                    luckNumber = int(results['luckNumber'])
-                except:
-                    print('最佳手气数字转换为int失败')
-                friend_info = results['friends_info']
-                friendsNumber = len(friend_info)
-                # 只提出 未领取到最大的url
-                if friendsNumber < luckNumber:
-                    # 捆绑信息
-                    urlInfo.append(luckNumber)
-                    urlInfo.append(friendsNumber)
-                    urlInfo.append(urlLine)
-                    littleUrl.append(urlInfo)
-                    # 去重复
-                    formatList = []
-                    for id in littleUrl:
-                        if id not in formatList:
-                            formatList.append(id)
-                    littleUrl = formatList
-
+    file_path = 'starUrls.txt'
+    little_urls = []  # 统计未领取到最大的url，写入文件时用
+    little_urls_info = []    # 统计未领到最大的url 和 领取信息
+    url_list = linecache.getlines(file_path)
+    # 去重复
+    formatList = []
+    for url in url_list:
+        if url not in formatList:
+            formatList.append(url)
+        url_list = formatList
+    for url in url_list:
+        if len(url) > 5:
+            url = url.replace('\n', '')
+            url = url.replace('\t', '')
+            url = url.replace('\r', '')
+            results = GetAndSee.getHB(url, wxcookie7['whid'])
+            if results:
+                if int(results['luck_number']) > int(results['friends_number']):
+                    little_urls.append(url)
+                    little_urls_info.append(results)
     # 获取当前文件夹路径
     currentPath = os.path.dirname(os.path.realpath(__file__))
-
     # 将未领取到最大的url的领取信息写入文件
-    with open(currentPath + '\\' + 'littleUrlsINFO.txt', 'w') as littleUrlFile:
-        for urlDict in littleUrl:
-            # writeLine =
-            littleUrlFile.write(' 最大:'+ str(urlDict[0]))
-            littleUrlFile.write(' 已领：'+ str(urlDict[1]))
-            littleUrlFile.write(' 链接：'+ urlDict[2])
-
+    with open(currentPath + '/littleUrlsINFO.txt', 'w') as little_url_info_file:
+        for url_info in little_urls_info:
+            little_url_info_file.write(str(url_info) + '\n')
      # 将未领取到最大的url写入文件
-    filePath2 = currentPath + '\\' +filePath
-    with open(filePath2, 'w') as  littleUrlFile:
-        for urlDict in littleUrl:
-            littleUrlFile.write(urlDict[2])
+    filePath2 = currentPath + '/' + file_path
+    with open(filePath2, 'w') as little_url_file:
+        for url in little_urls:
+            little_url_file.write(str(url) + '\n')
 
 else:
     print('输入无法识别')

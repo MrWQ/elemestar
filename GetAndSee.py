@@ -1,71 +1,74 @@
-﻿import requests
+﻿import json
+import re
 
-import Result
+import pandas as pd
+import requests
 
 headers = {'User-Agent':'Mozilla/5.0 (Linux; Android 8.1; PACM00 Build/O11019; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.132 MQQBrowser/6.2 TBS/044306 Mobile Safari/537.36 MicroMessenger/6.7.3.1360(0x26070336) NetType/WIFI Language/zh_CN Process/tools'}
 
 
-# 透视
-# def seeHB(url,printInfo,wxcookie):
-#     s = requests.session()
-#     re2 = s.post(url=url, headers=headers, cookies=wxcookie)
-#
-#     resultHtml = re2.content.decode('unicode_escape')
-#     # resultHtml = re2.content.decode()
-#
-#     results = Result.getResultDict(resultHtml)
-#     if results != None:
-#         # 如果标志位为ture 打印信息
-#         if printInfo == True:
-#             luckNumber = results['luckNumber']
-#             friend_info =  results['friends_info']
-#             friendsNumber = len(friend_info)
-#             print('最佳手气位置：' ,luckNumber)
-#             print("当前已领取人数：" ,friendsNumber)
-#             print("朋友信息如下：")
-#             print('姓名'.rjust(10) ,'红包'.rjust(20))
-#             for friend in friend_info:
-#                 # print(friend)
-#                 print(friend['username'].rjust(10) ,str(friend['amount']).rjust(20))
-#         else:
-#             return results
-#     else:
-#         print('当前红包已过期')
-#         return  None
-#     领取
-def getHB(url, wxcookie, printInfo):
-    # 构造领取cookie
-    WXcookie = {'WMID': '',
-                'whid': '',
-                'WMST': ''
-                }
-    s = requests.session()
-    re2 = s.post(url=url, headers=headers, cookies=wxcookie)
-    WXcookie['WMID'] = Result.get_WMID(re2.headers)
-    WXcookie['WMST'] = Result.get_WMST(re2.headers)
-    WXcookie['whid'] = wxcookie['whid']
-    # 领取
-    re2 = s.post(url=url, headers=headers, cookies=WXcookie)
-    resultHtml = re2.content.decode('unicode_escape')
-    results = Result.getResultDict(resultHtml)
-    if results['friends_info'] != None:
-#         # 如果标志位为ture 打印信息
-        if printInfo == True:
-            luckNumber = results['luckNumber']
-            friend_info = results['friends_info']
-            error_msg = results['error_msg']
-            friendsNumber = len(friend_info)
-            print('最佳手气位置：' ,luckNumber)
-            print("当前已领取人数：" ,friendsNumber)
-            print("朋友信息如下：")
-            print('姓名'.rjust(10) ,'红包'.rjust(20))
-            for friend in friend_info:
-                print(friend['username'].rjust(10) ,str(friend['amount']).rjust(20))
-            print(error_msg)
-        else:
-            return results
+# 从响应头获取cookie
+def get_WMID(header):
+    set_cookie  = header['Set-Cookie']
+    pattern = re.compile(r'WMID=(.*?);', re.S)
+    list = re.findall(pattern, set_cookie)
+    for i in list:
+        if i:
+            return i
+
+
+def getHB(url, wxcookie):
+    if '?' in url:
+        try:
+            url_type = str(url.split('?')[1])
+        except:
+            print('链接切割失败，获取链接参数失败')
+            return None
     else:
-        print('当前红包已过期,获取红包信息失败')
-        print(results['error_msg'])
-        return None
+        url_type = url
+    url = 'https://star.ele.me/hongbao/wpshare?display=json&' + url_type
+    url = url.replace("'", '')
+    url = url.replace('{', '')
+    url = url.replace('}', '')
+    # 构造领取cookie
+    WXcookie = {'WMID': '', 'whid': ''}
+    WXcookie['whid'] = wxcookie
+    s = requests.session()
+    re2 = s.post(url=url, headers=headers, cookies=WXcookie)
+    WXcookie['WMID'] = get_WMID(re2.headers)
+    re2 = s.post(url=url, headers=headers, cookies=WXcookie)
+    # 此处重构，json解析
+    results_html = re2.content.decode('unicode_escape')
+    results_html = results_html.replace('"{', '{')
+    results_html = results_html.replace('}"', '}')
+    results = json.loads(results_html)
+    if results['result'] == []:
+        error_msg = results['msg']
+    else:
+        error_msg = results['result']['msg']
+        if len(results['result']) > 8:
+                pattern = re.compile(r"第(.*?)个领取的人", re.S)
+                luck_number = re.findall(pattern, results['result']['share']['share_title'])[0]
+                friend_info = results['result']['friends_info']
+                friends_number = len(friend_info)
+                print("信息如下：", "最佳位置：", luck_number, '已领人数：', friends_number)
+                fri_info = []
+                for friend in friend_info:
+                    hb_info = {}
+                    hb_info['username'] = friend['username']
+                    hb_info['amount'] = friend['amount']
+                    hb_info['is_luck'] = friend['is_luck']
+                    hb_info['date'] = friend['date']
+                    fri_info.append(hb_info)
+                pad = pd.DataFrame(fri_info, columns=['date', 'is_luck', 'amount', 'username'])
+                print(pad)
+                print(error_msg, '\n')
+                ret = {}
+                ret['luck_number'] = luck_number
+                ret['friends_number'] = friends_number
+                ret['url'] = url
+                return ret
+
+    print(error_msg)
+    return None
 
